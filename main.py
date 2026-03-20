@@ -1,49 +1,36 @@
-import os
-import requests
-import feedparser  # 调用成熟的 RSS 专家零件
-from datetime import datetime
+name: 自动资讯工厂
 
-# 1. 订阅源配置 (Sources Configuration)
-# 你可以在这里增加任何你感兴趣的一手英文站
-FEEDS = {
-    "OpenAI": "https://openai.com/blog/rss.xml",
-    "Nature": "https://www.nature.com/nature.rss",
-    "Reuters": "https://rsshub.app/reuters/world"
-}
+on:
+  workflow_dispatch: # 手动触发 (Manual Trigger)
+  schedule:
+    - cron: '0 0 * * *' # 每天早上 8 点自动运行
 
-def translate_text(text):
-    """调用 Gemini AI 翻译 (AI Translation)"""
-    api_key = os.getenv("GEMINI_API_KEY")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
-    # 工业级 Prompt（提示词）：要求 AI 保持简洁
-    prompt = f"Translate this news title to Chinese, return only the result: {text}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    
-    try:
-        # 设置 15 秒超时保护，防止程序死锁
-        response = requests.post(url, json=payload, timeout=15)
-        return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
-    except:
-        return text # 失败则返回原文 (Fallback to original)
+jobs:
+  run_job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 授予写权限 (Write Permission)
 
-def start_process():
-    items_html = ""
-    for name, url in FEEDS.items():
-        # 使用 feedparser 解析。它是成熟的代码，能处理复杂的 XML 结构
-        feed = feedparser.parse(url)
-        print(f"Processing: {name}")
-        
-        # 只取前 3 条最热的新闻
-        for entry in feed.entries[:3]:
-            translated_title = translate_text(entry.title)
-            items_html += f"<li>[{name}] <a href='{entry.link}'>{translated_title}</a></li>"
+    steps:
+      - name: 1. 提取代码 (Checkout)
+        uses: actions/checkout@v4 # 使用官方成熟插件
 
-    # 生成最终的 HTML 页面
-    html_template = f"<html><meta charset='utf-8'><body><h1>今日全球资讯</h1><ul>{items_html}</ul></body></html>"
-    
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html_template)
+      - name: 2. 安装 Python (Setup Python)
+        uses: actions/setup-python@v5 # 使用官方成熟插件
+        with:
+          python-version: '3.10'
 
-if __name__ == "__main__":
-    start_process()
+      - name: 3. 安装依赖零件 (Install dependencies)
+        run: pip install -r requirements.txt
+
+      - name: 4. 运行主程序 (Run logic)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python main.py
+
+      - name: 5. 自动提交并推送成果 (Auto Commit & Push)
+        # 使用成熟的社区插件，比手写 git 命令更稳健
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update News Report"
+          file_pattern: "index.html"
