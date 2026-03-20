@@ -12,20 +12,29 @@ FEEDS = {
 }
 
 def translate_text(text):
-    """调用 Gemini AI 翻译 (AI Translation)"""
+    """调用 Gemini AI 翻译，并详细记录错误"""
     api_key = os.getenv("GEMINI_API_KEY")
+    # 检查钥匙是否成功拿到
+    if not api_key:
+        print("❌ 错误：在 GitHub Secrets 中没有找到 GEMINI_API_KEY！")
+        return text
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
-    # 工业级 Prompt（提示词）：要求 AI 保持简洁
     prompt = f"Translate this news title to Chinese, return only the result: {text}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        # 设置 15 秒超时保护，防止程序死锁
         response = requests.post(url, json=payload, timeout=15)
+        # 如果返回码不是 200 (成功)，打印出原因
+        if response.status_code != 200:
+            print(f"⚠️ 翻译请求失败，状态码：{response.status_code}")
+            print(f"响应详情：{response.text}")
+            return text
+            
         return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
-    except:
-        return text # 失败则返回原文 (Fallback to original)
+    except Exception as e:
+        print(f"❌ 发生网络或代码错误: {e}")
+        return text
 
 def start_process():
     items_html = ""
