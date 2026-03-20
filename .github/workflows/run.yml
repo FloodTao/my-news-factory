@@ -18,7 +18,7 @@ jobs:
       - name: 2. 安装 Python (Setup Python)
         uses: actions/setup-python@v5 # 使用官方成熟插件
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: 3. 安装依赖零件 (Install dependencies)
         run: pip install -r requirements.txt
