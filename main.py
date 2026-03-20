@@ -1,31 +1,32 @@
 import os
 import feedparser
-import google.generativeai as genai # 引入官方原厂零件
+from google import genai # 注意：这是最新的引入方式
 from datetime import datetime
 
-# 1. 订阅源
+# 订阅源
 FEEDS = {
     "OpenAI": "https://openai.com/blog/rss.xml",
     "Nature": "https://www.nature.com/nature.rss"
 }
 
 def translate_text(text):
-    """使用 Google 官方 SDK 进行翻译"""
+    """使用 2026 最新版 google-genai 客户端"""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return text
 
-    # 配置原厂驱动
-    genai.configure(api_key=api_key)
-    # 使用目前最稳定的 1.5-flash 模型
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # 初始化新一代客户端
+    client = genai.Client(api_key=api_key)
     
     try:
-        # 官方标准的调用方式
-        response = model.generate_content(f"请将这段英文标题翻译成中文，只返回翻译结果：\n{text}")
+        # 新版 SDK 会自动处理版本和路径，极其稳健
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=f"请将这段英文标题翻译成中文，只返回翻译结果：\n{text}"
+        )
         return response.text.strip()
     except Exception as e:
-        print(f"⚠️ 官方零件反馈：{e}")
+        print(f"❌ 最新零件反馈报错: {e}")
         return text
 
 def start_process():
