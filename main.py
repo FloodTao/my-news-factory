@@ -1,4 +1,4 @@
-import os
+import time import os
 import feedparser
 from google import genai
 from datetime import datetime
